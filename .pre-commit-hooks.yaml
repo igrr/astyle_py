@@ -1,0 +1,6 @@
+-   id: astyle_py
+    name: astyle
+    description: Astyle 3.1 python wrapper
+    entry: astyle_py
+    language: python
+    pass_filenames: true
