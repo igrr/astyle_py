@@ -1,6 +1,7 @@
 -   id: astyle_py
-    name: astyle
-    description: Astyle 3.1 python wrapper
+    name: astyle formatter
+    description: Astyle python wrapper. By default checks the formatting according to the given options. If '--fix' option is given, corrects formatting. Pass astyle options (such as '--style=otbs') via 'args' array.
     entry: astyle_py
     language: python
     pass_filenames: true
+    files: '^.*\.(c|cpp|cxx|h|hpp|inc)$'
