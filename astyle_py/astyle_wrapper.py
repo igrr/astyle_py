@@ -1,10 +1,12 @@
 import os
 import re
 import sys
+import typing
+from collections import namedtuple
+
 from wasmtime import (
     Engine,
     ValType,
-    WasiInstance,
     Store,
     Linker,
     Module,
@@ -12,19 +14,38 @@ from wasmtime import (
     FuncType,
     Config,
     WasiConfig,
+    Instance
 )
+
 from . import __version__
 
 
+class WasmContext:
+    def __init__(self):
+        wasm_cfg = Config()
+        wasm_cfg.cache = True
+        self.linker = Linker(Engine(wasm_cfg))
+        self.linker.define_wasi()
+        self.store = Store(self.linker.engine)
+        self.store.set_wasi(WasiConfig())
+        self.inst = None  # type: typing.Optional[Instance]
+
+    def call_func(self, name: str, *args):
+        return self.inst.exports(self.store)[name](self.store, *args)
+
+    def get_data_ptr(self, name: str):
+        return self.inst.exports(self.store)[name].data_ptr(self.store)
+
+
 class WasmString:
-    def __init__(self, inst, addr, len, as_str):
-        self._inst = inst
+    def __init__(self, context: WasmContext, addr: int, len: int, as_str: str):
+        self._context = context
         self._addr = addr
         self._len = len
         self._str = as_str
 
     def __del__(self):
-        self._inst.exports["free"](self._addr)
+        self._context.call_func("free", self._addr)
 
     @property
     def addr(self):
@@ -34,79 +55,69 @@ class WasmString:
         return self._str
 
     @staticmethod
-    def from_str(inst, string):
-        strb = string.encode("utf-8")
+    def from_str(context: WasmContext, string: str) -> 'WasmString':
+        strb = string.encode("utf-8") + b'\x00'
         n_bytes = len(strb)
-        addr = inst.exports["malloc"](n_bytes + 1)
-        data = inst.exports["memory"].data_ptr
+        addr = int(context.call_func("malloc", n_bytes + 1))
+        data = context.get_data_ptr("memory")
         for i in range(n_bytes):
             data[addr + i] = strb[i]
         data[addr + n_bytes] = 0
-        return WasmString(inst, addr, n_bytes, string)
+        return WasmString(context, addr, n_bytes, string)
 
     @staticmethod
-    def from_addr(inst, addr):
+    def from_addr(context: WasmContext, addr: int) -> 'WasmString':
         n_bytes = 0
-        strb = []
-        data = inst.exports["memory"].data_ptr
+        strb = bytearray()
+        data = context.get_data_ptr("memory")
         while True:
             c = data[addr + n_bytes]
             if c == 0:
                 break
             strb.append(c)
             n_bytes += 1
-        string = bytes(strb).decode("utf-8")
-        return WasmString(inst, addr, n_bytes, string)
+        string = strb.decode("utf-8")  # type: ignore
+        return WasmString(context, addr, n_bytes, string)
 
 
 class Astyle:
     def __init__(self):
-        wasm_cfg = Config()
-        wasm_cfg.cache = True
-        store = Store(Engine(wasm_cfg))
-        linker = Linker(store)
-
-        wasi_cfg = WasiConfig()
-        wasi_inst = WasiInstance(store, "wasi_snapshot_preview1", wasi_cfg)
-        linker.define_wasi(wasi_inst)
-
-        self.inst = None
+        self.context = WasmContext()
         err_handler_type = FuncType([ValType.i32(), ValType.i32()], [])
-        err_handler_func = Func(store, err_handler_type, self._err_handler)
-        linker.define("env", "AStyleErrorHandler", err_handler_func)
+        err_handler_func = Func(self.context.store, err_handler_type, self._err_handler)
+        self.context.linker.define("env", "AStyleErrorHandler", err_handler_func)
 
         wasm_file = os.path.join(os.path.dirname(__file__), "libastyle.wasm")
-        module = Module.from_file(store.engine, wasm_file)
-        self.inst = linker.instantiate(module)
-        self.inst.exports["_initialize"]()
+        module = Module.from_file(self.context.store.engine, wasm_file)
+        self.context.inst = self.context.linker.instantiate(self.context.store, module)
+        self.context.call_func("_initialize")
 
-        self._opts_ptr = WasmString.from_str(self.inst, "")
+        self._opts_ptr = WasmString.from_str(self.context, "")
 
-    def version(self):
-        res_addr = self.inst.exports["AStyleGetVersion"]()
-        return str(WasmString.from_addr(self.inst, res_addr))
+    def version(self) -> str:
+        res_addr = self.context.call_func("AStyleGetVersion")
+        return str(WasmString.from_addr(self.context, res_addr))
 
-    def set_options(self, options):
-        self._opts_ptr = WasmString.from_str(self.inst, options)
+    def set_options(self, options: str) -> None:
+        self._opts_ptr = WasmString.from_str(self.context, options)
 
-    def format(self, source):
-        src_ptr = WasmString.from_str(self.inst, source)
-        fmt_func = self.inst.exports["AStyleWrapper"]
-        res_addr = fmt_func(src_ptr.addr, self._opts_ptr.addr)
-        return str(WasmString.from_addr(self.inst, res_addr))
+    def format(self, source: str) -> str:
+        src_ptr = WasmString.from_str(self.context, source)
+        res_addr = self.context.call_func("AStyleWrapper", src_ptr.addr, self._opts_ptr.addr)
+        return str(WasmString.from_addr(self.context, res_addr))
 
-    def _err_handler(self, errno, errptr):
-        errstr = WasmString.from_addr(self.inst, errptr)
+    def _err_handler(self, errno: int, errptr: int):
+        errstr = WasmString.from_addr(self.context, errptr)
         print("error: {} ({})".format(errstr, errno), file=sys.stderr)
         raise SystemExit(1)
 
 
-def get_lines_from_file(fname):
+def get_lines_from_file(fname: str) -> typing.List[str]:
     with open(fname) as f:
         return [line.strip() for line in f if not line.startswith("#") and len(line.strip()) > 0]
 
 
-def pattern_to_regex(pattern):
+def pattern_to_regex(pattern: str) -> str:
     """
     Convert the CODEOWNERS-style path pattern into a regular expression string
     """
@@ -140,28 +151,32 @@ def pattern_to_regex(pattern):
     return re_pattern
 
 
-def file_excluded(fname, exclude_regexes):
+def file_excluded(fname: str, exclude_regexes: typing.Iterable[typing.Pattern[str]]) -> bool:
     for regex in exclude_regexes:
         if re.search(regex, "/" + fname):
             return True
     return False
 
 
-def main():
-    if "--version" in sys.argv:
-        print(
-            "astyle_py v{} with astyle v{}".format(
-                __version__, Astyle().version()
-            )
-        )
-        raise SystemExit(0)
+AstyleArgs = namedtuple("AstyleArgs", [
+    "options",
+    "files",
+    "exclude_list",
+    "fix_formatting",
+    "quiet"
+])
 
-    for i, arg in enumerate(sys.argv[1:], 1):
+
+def parse_args(args) -> AstyleArgs:
+    i = 0
+    for i, arg in enumerate(args):
         if not arg.startswith("--"):
             break
+    else:
+        i = len(args)
 
-    options = sys.argv[1:i]
-    files = sys.argv[i:]
+    options = args[:i]
+    files = args[i:]
     exclude_list = []
     fix_formatting = True
     quiet = False
@@ -175,8 +190,7 @@ def main():
 
         def ensure_value():
             if not value:
-                print("Option {} requires a value".format(opt), file=sys.stderr)
-                raise SystemExit(1)
+                raise ValueError("Option {} requires a value".format(opt))
 
         if opt == "dry-run":
             options_to_remove.append(o)
@@ -204,18 +218,36 @@ def main():
     for o in options_to_remove:
         options.remove(o)
 
-    exclude_regexes = [re.compile(pattern_to_regex(p)) for p in exclude_list]
+    return AstyleArgs(options=options, files=files, exclude_list=exclude_list, fix_formatting=fix_formatting, quiet=quiet)
+
+
+def main():
+    if "--version" in sys.argv:
+        print(
+            "astyle_py v{} with astyle v{}".format(
+                __version__, Astyle().version()
+            )
+        )
+        raise SystemExit(0)
+
+    try:
+        args = parse_args(sys.argv[1:])
+    except ValueError as e:
+        print(str(e), file=sys.stderr)
+        raise SystemExit(1)
+
+    exclude_regexes = [re.compile(pattern_to_regex(p)) for p in args.exclude_list]
 
     astyle = Astyle()
-    astyle.set_options(" ".join(options))
+    astyle.set_options(" ".join(args.options))
 
-    def diag(*args):
-        if not quiet:
-            print(*args, file=sys.stderr)
+    def diag(*args_):
+        if not args.quiet:
+            print(*args_, file=sys.stderr)
 
     files_with_errors = 0
     files_formatted = 0
-    for fname in files:
+    for fname in args.files:
         if file_excluded(fname, exclude_regexes):
             diag("Skipping {}".format(fname))
             continue
@@ -223,7 +255,7 @@ def main():
             original = f.read()
         formatted = astyle.format(original)
         if formatted != original:
-            if fix_formatting:
+            if args.fix_formatting:
                 diag("Formatting {}".format(fname))
                 with open(fname, "w") as f:
                     f.write(formatted)
@@ -232,7 +264,7 @@ def main():
                 diag("Formatting error in {}".format(fname))
                 files_with_errors += 1
 
-    if fix_formatting:
+    if args.fix_formatting:
         if files_formatted:
             diag("Formatted {} files".format(files_formatted))
     else:
