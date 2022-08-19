@@ -1,0 +1,9 @@
+DEFAULT:
+  perform_check: yes
+  allowed_licenses:
+    - MIT
+  license_for_new_files: MIT  # license to be used when inserting a new copyright notice
+  new_notice_python: |  # notice for new python files
+    # SPDX-FileCopyrightText: {years} Ivan Grokhotkov <ivan@igrr.me>
+    # SPDX-License-Identifier: {license}
+  new_notice_c: ''
