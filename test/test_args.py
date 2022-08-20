@@ -17,7 +17,7 @@ def test_args_default():
 def test_args_simple():
     args = parse_args(['--quiet', '--dry-run', '--exclude=foo.c', 'bar.c', 'baz.c'])
     assert args.quiet
-    assert args.fix_formatting
+    assert not args.fix_formatting
     assert args.files == ['bar.c', 'baz.c']
     assert args.exclude_list == ['foo.c']
 
