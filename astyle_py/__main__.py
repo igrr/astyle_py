@@ -1,10 +1,11 @@
-import re
+# SPDX-FileCopyrightText: 2022 Ivan Grokhotkov <ivan@igrr.me>
+# SPDX-License-Identifier: MIT
 import sys
 
 from . import __version__
 from .args import parse_args
 from .astyle_wrapper import Astyle
-from .utils import file_excluded, pattern_to_regex
+from .files_iter import iterate_files
 
 
 def main():
@@ -18,10 +19,7 @@ def main():
         print(str(e), file=sys.stderr)
         raise SystemExit(1)
 
-    exclude_regexes = [re.compile(pattern_to_regex(p)) for p in args.exclude_list]
-
     astyle = Astyle()
-    astyle.set_options(' '.join(args.options))
 
     def diag(*args_):
         if not args.quiet:
@@ -29,10 +27,9 @@ def main():
 
     files_with_errors = 0
     files_formatted = 0
-    for fname in args.files:
-        if file_excluded(fname, exclude_regexes):
-            diag('Skipping {}'.format(fname))
-            continue
+    for file_item in iterate_files(args):
+        fname = file_item.filename
+        astyle.set_options(' '.join(file_item.astyle_options))
         with open(fname) as f:
             original = f.read()
         formatted = astyle.format(original)
