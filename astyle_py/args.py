@@ -1,9 +1,12 @@
+# SPDX-FileCopyrightText: 2022 Ivan Grokhotkov <ivan@igrr.me>
+# SPDX-License-Identifier: MIT
 from collections import namedtuple
 
 from .utils import get_lines_from_file
 
 AstyleArgs = namedtuple(
-    'AstyleArgs', ['options', 'files', 'exclude_list', 'fix_formatting', 'quiet']
+    'AstyleArgs',
+    ['rules', 'options', 'files', 'exclude_list', 'fix_formatting', 'quiet'],
 )
 
 
@@ -20,6 +23,7 @@ def parse_args(args) -> AstyleArgs:
     exclude_list = []
     fix_formatting = True
     quiet = False
+    rules = None
     options_to_remove = []
 
     for o in options:
@@ -30,7 +34,7 @@ def parse_args(args) -> AstyleArgs:
 
         def ensure_value():
             if not value:
-                raise ValueError('Option {} requires a value'.format(opt))
+                raise ValueError('Option --{} requires a value'.format(opt))
 
         if opt == 'dry-run':
             options_to_remove.append(o)
@@ -55,10 +59,23 @@ def parse_args(args) -> AstyleArgs:
             options_to_remove.append(o)
             quiet = True
 
+        elif opt == 'rules':
+            options_to_remove.append(o)
+            ensure_value()
+            rules = value
+
     for o in options_to_remove:
         options.remove(o)
 
+    has_rules = rules is not None
+    has_options_or_exclude_list = options or exclude_list
+    if has_rules and has_options_or_exclude_list:
+        raise ValueError(
+            '--options, --exclude, --exclude-list can\'t be used together with --rules'
+        )
+
     return AstyleArgs(
+        rules=rules,
         options=options,
         files=files,
         exclude_list=exclude_list,

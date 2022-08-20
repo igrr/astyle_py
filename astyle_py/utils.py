@@ -1,4 +1,5 @@
-import re
+# SPDX-FileCopyrightText: 2022 Ivan Grokhotkov <ivan@igrr.me>
+# SPDX-License-Identifier: MIT
 import typing
 
 
@@ -52,12 +53,3 @@ def pattern_to_regex(pattern: str) -> str:
         re_pattern = '^' + re_pattern
 
     return re_pattern
-
-
-def file_excluded(
-    fname: str, exclude_regexes: typing.Iterable[typing.Pattern[str]]
-) -> bool:
-    for regex in exclude_regexes:
-        if re.search(regex, '/' + fname):
-            return True
-    return False
