@@ -55,4 +55,3 @@ Note that __only a few__ of the options in ["Other options"](http://astyle.sourc
 * `--exclude-list=<file>` — skip files matching the list of patterns specified in a file.
 * `--version` — print the version and exit.
 * `--quiet` — don't print diagnostic messages; by default the files containing errors or files which are formatted are listed in stderr.
-
