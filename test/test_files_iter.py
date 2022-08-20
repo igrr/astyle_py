@@ -2,9 +2,10 @@
 # SPDX-License-Identifier: MIT
 import os
 import pathlib
+import textwrap
 from contextlib import contextmanager
 
-from astyle_py.files_iter import iterate_files_simple
+from astyle_py.files_iter import FileItem, iterate_files_rules, iterate_files_simple
 
 
 @contextmanager
@@ -49,7 +50,7 @@ def test_iter_simple(tmp_path: pathlib.Path):
         assert sorted([it.filename for it in items]) == [
             'file_a.c',
             'file_b.c',
-            'sub/file_c.c',
+            os.path.join('sub', 'file_c.c'),
         ]
 
         # exclude sub*
@@ -61,5 +62,47 @@ def test_iter_simple(tmp_path: pathlib.Path):
         assert sorted([it.filename for it in items]) == [
             'file_a.c',
             'file_b.c',
-            'sub/sub2/file_d.c',
+            os.path.join('sub', 'sub2', 'file_d.c'),
         ]
+
+
+def test_iter_rules(tmp_path: pathlib.Path):
+    base = str(tmp_path.absolute())
+    (tmp_path / 'file_a.c').touch()
+    (tmp_path / 'file_b.c').touch()
+    (tmp_path / 'sub').mkdir()
+    (tmp_path / 'sub' / 'file_c.c').touch()
+    (tmp_path / 'sub' / 'sub2').mkdir()
+    (tmp_path / 'sub' / 'sub2' / 'file_d.c').touch()
+
+    all_files = sorted(str(p.relative_to(base)) for p in tmp_path.glob('**/*.c'))
+    assert len(all_files) == 4
+
+    rules_str = textwrap.dedent(
+        """
+        DEFAULT:
+            options: "--opt1 --opt2=foo"
+            check: true
+
+        rule_1:
+            include:
+                - "*_b.c"
+            options: "--opt3 --opt4=bar"
+
+        rule_2:
+            include:
+                - "/sub/"
+            check: false
+
+        rule_3:
+            include:
+                - "/**/sub2/"
+            options: "--opt7 --opt8=ffs"
+    """
+    )
+    rules_file = tmp_path / 'rules'
+    rules_file.write_text(rules_str)
+
+    items = list(iterate_files_rules(all_files, str(rules_file)))
+    assert len(items) == 3
+    assert FileItem('file_a.c', ['--opt1', '--opt2=foo']) in items
