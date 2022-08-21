@@ -2,56 +2,122 @@
 
 [Artistic Style (astyle)](http://astyle.sourceforge.net/) is a source code indenter, formatter, and beautifier for the C, C++, C++/CLI, Objective‑C, C# and Java programming languages.
 
-This project wraps `astyle` in a Python package, compatible with [pre-commit](https://pre-commit.com/) framework.
-It allows you to fix source code formatting with a Git pre-commit hook.
-The main motivation for using this Python wrapper, rather than native `astyle` binaries, is that users of all operating systems will be using exactly the same version of astyle. This prevents formatting differences which sometimes occur between different versions of astyle.
+This project wraps `astyle` in a Python package. The package can be used:
+- [as a pre-commit hook](#using-with-pre-commit) compatible with the [pre-commit](https://pre-commit.com/) framework,
+- [as a console program](#using-from-the-command-line),
+- [as a library](#using-as-a-library), from other Python packages.
 
-To simplify distribution of astyle, it is compiled to WebAssembly ([astyle_py/libastyle.wasm](astyle_py/libastyle.wasm)) and executed using wasmtime runtime via its Python bindings. This package should work on all operating systems supported by wasmtime — at the time of writing these are the x86_64 versions of Windows, Linux, macOS, and aarch64 Linux.
+The main reason to use this Python wrapper, rather than native `astyle` binaries, is that makes it easy for developers working on a project to have exactly the same version of astyle, regardless of their operating system. This prevents formatting differences which sometimes occur between different versions of astyle.
 
-## Usage
+## Using with `pre-commit`
 
-By default, `astyle_py` formats the files specified, according to the given options.
-
-### With pre-commit
-
-1. Set up pre-commit for your project as described in https://pre-commit.com/#install.
-2. Add `astyle_py` to your `.pre-commit-config.yaml` file:
+1. Set up `pre-commit` for your project as described in https://pre-commit.com/#install.
+2. Add `astyle_py` to your `.pre-commit-config.yaml` file as follows. **Note: avoid using `main` as the revision.**
    ```yaml
    repos:
    -   repo: https://github.com/igrr/astyle_py.git
-       rev: master
+       rev: v1.0.0
        hooks:
        -   id: astyle_py
            args: [--style=linux]
    ```
 
-   Place the required astyle formatting options to the `args` array. See the next section for details.
+Place the required astyle formatting options to the `args` array. See the next section for details.
 
-   If necessary, add `verbose: true` to see the output.
+Use `--dry-run` argument if you only want the pre-commit hook to report the formatting errors, and not fix them automatically.
 
-   Use `files:` option to configure the regex pattern used to match the files to be formatted. Default is `'^.*\.(c|cpp|cxx|h|hpp|inc)$'`.
+If necessary, add `verbose: true` option to see the output.
 
-### From command line
+Use `files:` option to configure the regex pattern used to match the files to be formatted. The default pattern is `'^.*\.(c|cpp|cxx|h|hpp|inc)$'`. You can exclude certain files via additional arguments, as described in the next section.
 
-There is no PyPI release yet, but you can install the package directly from Github:
+## Using from the command line
+
+Install the package from PyPI:
 ```
-pip install git+https://github.com/igrr/astyle_py.git
+pip install astyle-py
 ```
 
 Usage:
 ```
-astyle_py [options] <files>
+astyle_py [options] <files to format>
 ```
 
-`<files>` — list of files to process
+* `<files>` — list of files to process. By default, `astyle_py` formats the files, modifying them in-place.
+* `[options]` — can be any of the [formatting options](#formatting-options), plus the following options are accepted:
 
-`[options]` — astyle formatting options, see http://astyle.sourceforge.net/astyle.html for reference.
+### Common options
 
-Note that __only a few__ of the options in ["Other options"](http://astyle.sourceforge.net/astyle.html#_Other_Options) and ["Command Line Only"](http://astyle.sourceforge.net/astyle.html#_Command_Line_Only) are supported, namely:
-
-* `--options=<file>` — read more options from the specified file. Empty lines and lines starting with `#` are ignored.
-* `--dry-run` — don't format the files, return non-zero exit code if any file would change after formatting.
-* `--exclude=<pattern>` — skip files matching the given pattern. Note that patterns use the syntax of [Gitlab CODEOWNERS files](https://docs.gitlab.com/ee/user/project/code_owners.html#the-syntax-of-code-owners-files).
-* `--exclude-list=<file>` — skip files matching the list of patterns specified in a file.
 * `--version` — print the version and exit.
-* `--quiet` — don't print diagnostic messages; by default the files containing errors or files which are formatted are listed in stderr.
+* `--quiet` — don't print diagnostic messages; by default, the list of files which are formatted is printed to `stderr`.
+* `--dry-run` — don't format the files, only check the formatting. Returns non-zero exit code if any file would change after formatting.
+
+### Specifying additional options and excluded files
+
+* `--options=<file>` — read more formatting options from the specified file. Empty lines and lines starting with `#` are ignored.
+* `--exclude=<pattern>` — skip files matching the given pattern. Note that patterns use the syntax of [Gitlab CODEOWNERS files](https://docs.gitlab.com/ee/user/project/code_owners.html#the-syntax-of-code-owners-files).
+* `--exclude-list=<file>` — skip files matching the list of patterns specified in a file. Empty lines and lines starting with `#` are ignored.
+
+### Specifying the rules file
+
+* `--rules=<file>` — read the formatting rules from the specified rules file. See [Rules files](#rules-files) section for details. This option is incompatible with `--options`, `--exclude`, `--exclude-list`.
+
+## Using as a library
+
+This package can be used as a library to implement custom formatting tools. See [sample.py](sample.py) for an example.
+
+## Formatting options
+
+See http://astyle.sourceforge.net/astyle.html for the details on Astyle formatting options.
+
+Note that this wrapper doesn't implement the options from ["Other options"](http://astyle.sourceforge.net/astyle.html#_Other_Options) and ["Command Line Only"](http://astyle.sourceforge.net/astyle.html#_Command_Line_Only) categories, except for those listed [above](#using-from-the-command-line).
+
+## Rules files
+
+Option `--rules=<file>` allows loading the formatting options from a _rules file_ in YAML format. The rules file can specify different formatting rules for different parts of the project. This can be useful for monorepos which contain libraries written with different formatting conventions.
+
+The rules file consists of sections (rules). For each section the following keywords may be specified:
+- `include:` List of files name patterns to include in this rule. Pattern syntax of [Gitlab CODEOWNERS files](https://docs.gitlab.com/ee/user/project/code_owners.html#the-syntax-of-code-owners-files) is used. Required.
+- `check:` If set to `false`, the files covered by this rule will be ignored and not checked/formatted. Optional, default is `true`.
+- `options:` A string specifying the [formatting options](#formatting-options) for files covered by this rule.
+
+If the file path matches multiple rules, the latest rule is applied. If the file path doesn't match any rule, the options from the special `DEFAULT` rule are used.
+
+Here is an example of a rules file:
+```yml
+
+DEFAULT:
+    # These formatting options will be used by default
+    options: "--style=otbs --indent=spaces=4 --convert-tabs"
+
+thirdparty_lib_1:   # The section name is arbitrary
+    # Override formatting rules for the files in a certain directory
+    options: "--style=linux"
+    include:
+        - "/thirdparty/lib1/"
+
+code_to_ignore_for_now:
+    # Ignore files in some other directories
+    check: false
+    include:
+        - "/src/component1/"
+        - "/src/component2/"
+        - "tests/"     # matches a subdirectory 'tests' anywhere in the source tree
+```
+
+## Implementation notes
+
+
+To simplify distribution of astyle, it is compiled to WebAssembly ([astyle_py/libastyle.wasm](astyle_py/libastyle.wasm)) and executed using [wasmtime runtime](https://github.com/bytecodealliance/wasmtime) via its [Python bindings](https://github.com/bytecodealliance/wasmtime-py). This package should work on all operating systems supported by wasmtime — at the time of writing these are:
+- x86_64 (amd64) Windows, Linux, macOS
+- aarch64 (arm64) Linux and macOS
+
+There is another project which wraps astyle into a Python package, without using WebAssembly: https://github.com/timonwong/pyastyle. At the time of writing, it is unmaintained.
+
+## Contributing
+
+Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+
+## Copyright and License
+
+* The source code in this repository is Copyright (c) 2020-2022 Ivan Grokhotkov and licensed under the [MIT license](LICENSE).
+* `libastyle.wasm` binary bundled herein is built from Artistic Style project, Copyright (c) 2018 by Jim Pattee <jimp03@email.com>, also licensed under the MIT license. See http://astyle.sourceforge.net/ for details.
