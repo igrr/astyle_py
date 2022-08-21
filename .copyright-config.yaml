@@ -7,3 +7,10 @@ DEFAULT:
     # SPDX-FileCopyrightText: {years} Ivan Grokhotkov <ivan@igrr.me>
     # SPDX-License-Identifier: {license}
   new_notice_c: ''
+
+sample:
+  allowed_licenses:
+    - Unlicense OR CC0-1.0
+  license_for_new_files: Unlicense OR CC0-1.0
+  include:
+   - 'sample*'
