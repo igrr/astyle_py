@@ -31,7 +31,7 @@ def iterate_files(args: AstyleArgs) -> Generator[FileItem, None, None]:
     if args.rules is None:
         yield from iterate_files_simple(args.files, args.exclude_list, args.options)
     else:
-        raise NotImplementedError('args.rules not implemented yet')
+        yield from iterate_files_rules(args.files, args.rules)
 
 
 def iterate_files_simple(
