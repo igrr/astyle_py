@@ -5,4 +5,4 @@ from .astyle_wrapper import Astyle
 __all__ = [
     'Astyle',
 ]
-__version__ = '0.9.1'
+__version__ = '1.0.0'
