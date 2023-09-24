@@ -55,6 +55,12 @@ jobs:
       with:
         name: dist
         path: dist
+    - name: Sanity-check the resulting wheel
+      run: |
+        python3 -m venv venv
+        . venv/bin/activate
+        pip install dist/*.whl
+        astyle_py --version
 
   upload_wheels:
     if: github.event_name == 'push' && github.ref_type == 'tag'
