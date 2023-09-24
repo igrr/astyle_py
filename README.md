@@ -1,5 +1,8 @@
 # astyle_py — Python wrapper around [astyle](http://astyle.sourceforge.net/)
 
+![PyPI - Version](https://img.shields.io/pypi/v/astyle-py?labelColor=383838)
+ [![CI](https://github.com/igrr/astyle_py/actions/workflows/main.yml/badge.svg)](https://github.com/igrr/astyle_py/actions/workflows/main.yml) ![Python](https://img.shields.io/badge/dynamic/yaml?url=https://raw.githubusercontent.com/igrr/astyle_py/main/.github/workflows/main.yml&query=$.jobs['test'].strategy.matrix['python-version']&label=Python&logo=python&color=3366ff&logoColor=ffcc00&labelColor=383838)
+
 [Artistic Style (astyle)](http://astyle.sourceforge.net/) is a source code indenter, formatter, and beautifier for the C, C++, C++/CLI, Objective‑C, C# and Java programming languages.
 
 This project wraps `astyle` in a Python package. The package can be used:

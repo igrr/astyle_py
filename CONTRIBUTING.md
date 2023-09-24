@@ -26,6 +26,8 @@ A build script for the older Astyle 3.1 is also provided in `build-scripts/3.1`.
 
 ## Tagging a new release
 
-When tagging a new release, remember to update the package version in [astyle_py/__init__.py](astyle_py/__init__.py).
+When tagging a new release, remember to update the package version in:
+- [`astyle_py/__init__.py`](astyle_py/__init__.py)
+- [`README.md`](README.md)
 
 The release will be uploaded to PyPI automatically once the tag is pushed.
