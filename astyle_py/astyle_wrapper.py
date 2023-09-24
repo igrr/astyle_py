@@ -94,7 +94,9 @@ class Astyle:
         self.context = WasmContext()
         err_handler_type = FuncType([ValType.i32(), ValType.i32()], [])
         err_handler_func = Func(self.context.store, err_handler_type, self._err_handler)
-        self.context.linker.define('env', 'AStyleErrorHandler', err_handler_func)
+        self.context.linker.define(
+            self.context.store, 'env', 'AStyleErrorHandler', err_handler_func
+        )
 
         wasm_file = os.path.join(
             os.path.dirname(__file__), 'lib', version, 'libastyle.wasm'
