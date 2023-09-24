@@ -19,7 +19,7 @@ The main reason to use this Python wrapper, rather than native `astyle` binaries
        rev: v1.0.0
        hooks:
        -   id: astyle_py
-           args: [--astyle-version 3.4.7 --style=linux]
+           args: [--astyle-version=3.4.7 --style=linux]
    ```
 
 Place the required astyle formatting options to the `args` array. See the next section for details.
@@ -48,7 +48,7 @@ astyle_py [options] <files to format>
 ### Common options
 
 * `--version` — print the version and exit.
-* `--astyle-version <VER>` — choose the version of Astyle to use.
+* `--astyle-version=<VER>` — choose the version of Astyle to use.
 * `--quiet` — don't print diagnostic messages; by default, the list of files which are formatted is printed to `stderr`.
 * `--dry-run` — don't format the files, only check the formatting. Returns non-zero exit code if any file would change after formatting.
 
@@ -77,6 +77,7 @@ Note that this wrapper doesn't implement the options from ["Other options"](http
 Option `--rules=<file>` allows loading the formatting options from a _rules file_ in YAML format. The rules file can specify different formatting rules for different parts of the project. This can be useful for monorepos which contain libraries written with different formatting conventions.
 
 The rules file consists of sections (rules). For each section the following keywords may be specified:
+- `version:` Version of Astyle to use
 - `include:` List of files name patterns to include in this rule. Pattern syntax of [Gitlab CODEOWNERS files](https://docs.gitlab.com/ee/user/project/code_owners.html#the-syntax-of-code-owners-files) is used. Required.
 - `check:` If set to `false`, the files covered by this rule will be ignored and not checked/formatted. Optional, default is `true`.
 - `options:` A string specifying the [formatting options](#formatting-options) for files covered by this rule.
@@ -110,7 +111,7 @@ code_to_ignore_for_now:
 ## Supported Astyle versions
 
 This python wrapper bundles multiple copies of Astyle, you can choose which one to use:
-- In the CLI: via `--astyle-version` argument
+- In the CLI: via `--astyle-version=VERSION` argument
 - If you are using a rules file: using `version` key
 - When using astyle_py as a library: by passing the version to `Astyle()` constructor
 

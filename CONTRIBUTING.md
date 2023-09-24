@@ -13,7 +13,7 @@ Please do the following before submitting a PR:
 
 ## Building Astyle
 
-This Python package uses Astyle compiled into WebAssembly (astyle_py/lib/<VERSION>/libastyle.wasm). To build libastyle.wasm for a new Astyle version, run `build.sh <VERSION>` in the `build-scripts/3.3+` directory. For example, to build the library for Astyle 3.4.7:
+This Python package uses Astyle compiled into WebAssembly (`astyle_py/lib/<VERSION>/libastyle.wasm`). To build libastyle.wasm for a new Astyle version, run `build.sh <VERSION>` in the `build-scripts/3.3+` directory. For example, to build the library for Astyle 3.4.7:
 
 ```bash
 cd build-scripts/3.3+
