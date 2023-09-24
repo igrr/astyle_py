@@ -19,7 +19,7 @@ The main reason to use this Python wrapper, rather than native `astyle` binaries
        rev: v1.0.0
        hooks:
        -   id: astyle_py
-           args: [--style=linux]
+           args: [--astyle-version 3.4.7 --style=linux]
    ```
 
 Place the required astyle formatting options to the `args` array. See the next section for details.
@@ -48,6 +48,7 @@ astyle_py [options] <files to format>
 ### Common options
 
 * `--version` — print the version and exit.
+* `--astyle-version <VER>` — choose the version of Astyle to use.
 * `--quiet` — don't print diagnostic messages; by default, the list of files which are formatted is printed to `stderr`.
 * `--dry-run` — don't format the files, only check the formatting. Returns non-zero exit code if any file would change after formatting.
 
@@ -86,6 +87,8 @@ Here is an example of a rules file:
 ```yml
 
 DEFAULT:
+    # Version of Astyle to use
+    version: "3.4.7"
     # These formatting options will be used by default
     options: "--style=otbs --indent=spaces=4 --convert-tabs"
 
@@ -104,14 +107,27 @@ code_to_ignore_for_now:
         - "tests/"     # matches a subdirectory 'tests' anywhere in the source tree
 ```
 
-## Implementation notes
+## Supported Astyle versions
 
+This python wrapper bundles multiple copies of Astyle, you can choose which one to use:
+- In the CLI: via `--astyle-version` argument
+- If you are using a rules file: using `version` key
+- When using astyle_py as a library: by passing the version to `Astyle()` constructor
+
+The following versions are supported:
+
+- 3.1 — used by default, unless a different version is specified
+- 3.4.7
+
+## Implementation notes
 
 To simplify distribution of astyle, it is compiled to WebAssembly ([astyle_py/libastyle.wasm](astyle_py/libastyle.wasm)) and executed using [wasmtime runtime](https://github.com/bytecodealliance/wasmtime) via its [Python bindings](https://github.com/bytecodealliance/wasmtime-py). This package should work on all operating systems supported by wasmtime — at the time of writing these are:
 - x86_64 (amd64) Windows, Linux, macOS
 - aarch64 (arm64) Linux and macOS
 
-There is another project which wraps astyle into a Python package, without using WebAssembly: https://github.com/timonwong/pyastyle. At the time of writing, it is unmaintained.
+Other project which wraps astyle into a Python package include:
+- https://github.com/timonwong/pyastyle — unmaintained at the time of writing, uses native Astyle binaries
+- https://github.com/Freed-Wu/astyle-wheel/ — actively maintained, uses native Astyle binaries
 
 ## Contributing
 
@@ -120,4 +136,6 @@ Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 ## Copyright and License
 
 * The source code in this repository is Copyright (c) 2020-2022 Ivan Grokhotkov and licensed under the [MIT license](LICENSE).
-* `libastyle.wasm` binary bundled herein is built from Artistic Style project, Copyright (c) 2018 by Jim Pattee <jimp03@email.com>, also licensed under the MIT license. See http://astyle.sourceforge.net/ for details.
+* `libastyle.wasm` binaries bundled under [astyle_py/lib](astyle_py/lib) directory are built from [Artistic Style project](https://gitlab.com/saalen/astyle), Copyright (c) 2018 by Jim Pattee <jimp03@email.com>, also licensed under the MIT license. See http://astyle.sourceforge.net/ for details.
+
+Thanks to André Simon for maintaining Astyle project!

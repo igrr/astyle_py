@@ -78,14 +78,27 @@ class WasmString:
         return WasmString(context, addr, n_bytes, string)
 
 
+ASTYLE_COMPAT_VERSION = '3.1'
+ASTYLE_SUPPORTED_VERSIONS = os.listdir(os.path.join(os.path.dirname(__file__), 'lib'))
+
+
 class Astyle:
-    def __init__(self):
+    def __init__(self, version: str = ASTYLE_COMPAT_VERSION):
+        if version not in ASTYLE_SUPPORTED_VERSIONS:
+            raise ValueError(
+                'Unsupported astyle version: {}. Available versions: {}'.format(
+                    version, ', '.join(ASTYLE_SUPPORTED_VERSIONS)
+                )
+            )
+
         self.context = WasmContext()
         err_handler_type = FuncType([ValType.i32(), ValType.i32()], [])
         err_handler_func = Func(self.context.store, err_handler_type, self._err_handler)
         self.context.linker.define('env', 'AStyleErrorHandler', err_handler_func)
 
-        wasm_file = os.path.join(os.path.dirname(__file__), 'libastyle.wasm')
+        wasm_file = os.path.join(
+            os.path.dirname(__file__), 'lib', version, 'libastyle.wasm'
+        )
         module = Module.from_file(self.context.store.engine, wasm_file)
         self.context.inst = self.context.linker.instantiate(self.context.store, module)
         self.context.call_func('_initialize')

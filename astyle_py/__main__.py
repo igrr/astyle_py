@@ -4,22 +4,27 @@ import sys
 
 from . import __version__
 from .args import parse_args
-from .astyle_wrapper import Astyle
+from .astyle_wrapper import ASTYLE_COMPAT_VERSION, Astyle
 from .files_iter import iterate_files
 
 
 def main():
-    if '--version' in sys.argv:
-        print('astyle_py v{} with astyle v{}'.format(__version__, Astyle().version()))
-        raise SystemExit(0)
-
     try:
         args = parse_args(sys.argv[1:])
     except ValueError as e:
         print(str(e), file=sys.stderr)
         raise SystemExit(1)
 
-    astyle = Astyle()
+    if args.astyle_version:
+        astyle_version = args.astyle_version
+    else:
+        astyle_version = ASTYLE_COMPAT_VERSION
+
+    astyle = Astyle(version=astyle_version)
+
+    if args.version:
+        print('astyle-py {} with Astyle v{}'.format(__version__, astyle.version()))
+        raise SystemExit(0)
 
     def diag(*args_):
         if not args.quiet:

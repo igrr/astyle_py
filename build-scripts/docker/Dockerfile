@@ -1,4 +1,4 @@
-FROM ubuntu:20.04
+FROM ubuntu:22.04
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -9,10 +9,12 @@ RUN apt-get update \
     python3 \
     wget \
     xz-utils \
+    bzip2 \
+    cmake \
   && apt-get autoremove -y \
   && rm -rf /var/lib/apt/lists/*
 
-ARG EMSDK_VER=2.0.8
+ARG EMSDK_VER=3.1.46
 
 RUN cd /opt \
   && git clone -b ${EMSDK_VER} https://github.com/emscripten-core/emsdk.git \

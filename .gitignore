@@ -1,7 +1,7 @@
 tmp
 dist
-build
 *.egg-info
 __pycache__
 .venv
 .idea
+.pytest_cache

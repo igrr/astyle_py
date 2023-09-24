@@ -83,11 +83,13 @@ def test_iter_rules(tmp_path: pathlib.Path):
         DEFAULT:
             options: "--opt1 --opt2=foo"
             check: true
+            version: "3.4.7"
 
         rule_1:
             include:
                 - "*_b.c"
             options: "--opt3 --opt4=bar"
+            version: "3.1"
 
         rule_2:
             include:
@@ -105,4 +107,10 @@ def test_iter_rules(tmp_path: pathlib.Path):
 
     items = list(iterate_files_rules(all_files, str(rules_file)))
     assert len(items) == 3
-    assert FileItem('file_a.c', ['--opt1', '--opt2=foo']) in items
+    assert (
+        FileItem('file_a.c', ['--astyle-version=3.4.7', '--opt1', '--opt2=foo'])
+        in items
+    )
+    assert (
+        FileItem('file_b.c', ['--astyle-version=3.1', '--opt3', '--opt4=bar']) in items
+    )

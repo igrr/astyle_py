@@ -11,7 +11,7 @@ from .args import AstyleArgs
 from .utils import pattern_to_regex
 
 FileItem = namedtuple('FileItem', ['filename', 'astyle_options'])
-Rule = namedtuple('Rule', ['check', 'include', 'options'])
+Rule = namedtuple('Rule', ['check', 'include', 'options', 'version'])
 
 
 def file_matches_patterns(fname: str, patterns: List[Pattern]) -> bool:
@@ -52,7 +52,9 @@ def iterate_files_rules(
         rules_dict = yaml.safe_load(rf)
 
     # set the default rule
-    default_rule = Rule(check=True, include=[pattern_to_regex('*')], options=[])
+    default_rule = Rule(
+        check=True, include=[pattern_to_regex('*')], options=[], version=None
+    )
 
     # if 'DEFAULT' key is in the YAML file, use it to update the default rule
     default_rule_dict = rules_dict.get('DEFAULT')
@@ -77,6 +79,7 @@ def get_rule_from_dict(rule_name: str, rule_dict, defaults: Rule) -> Rule:
     options = defaults.options
     check = defaults.check
     include = defaults.include
+    version = defaults.version
 
     for k, v in rule_dict.items():
         if k == 'options':
@@ -97,12 +100,18 @@ def get_rule_from_dict(rule_name: str, rule_dict, defaults: Rule) -> Rule:
                     f'Unexpected value of \'include\' in rule {rule_name}, expected a list of strings, found {v}'
                 )
             include = [re.compile(pattern_to_regex(x)) for x in v]
+        elif k == 'version':
+            if not isinstance(v, str):
+                raise ValueError(
+                    f'Unexpected value of \'version\' in rule {rule_name}, expected a string, found {v}'
+                )
+            version = v
         else:
             raise ValueError(
                 f'Unexpected key \'{k}\' in rule {rule_name}, expected one of: options, check, include'
             )
 
-    return Rule(check, include, options)
+    return Rule(check, include, options, version)
 
 
 def process_rules_for_file(
@@ -113,4 +122,8 @@ def process_rules_for_file(
         if file_matches_patterns(fname, rule.include):
             selected_rule = rule
     if selected_rule.check:
-        yield FileItem(filename=fname, astyle_options=selected_rule.options)
+        options = []
+        if selected_rule.version:
+            options.append(f'--astyle-version={selected_rule.version}')
+        options += selected_rule.options
+        yield FileItem(filename=fname, astyle_options=options)

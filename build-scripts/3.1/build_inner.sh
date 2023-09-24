@@ -47,6 +47,7 @@ emmake make static
 emcc -o bin/libastyle.wasm \
     -s EXPORTED_FUNCTIONS=["_AStyleGetVersion","_AStyleWrapper","_malloc","_free"] \
     -s STANDALONE_WASM=1 \
+    -s ERROR_ON_UNDEFINED_SYMBOLS=0 \
     --no-entry \
     bin/libastyle.a
 

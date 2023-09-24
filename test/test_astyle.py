@@ -6,3 +6,6 @@ from astyle_py import Astyle
 def test_version():
     obj = Astyle()
     assert obj.version() == '3.1'
+
+    obj = Astyle(version='3.4.7')
+    assert obj.version() == '3.4.7'

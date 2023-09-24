@@ -6,7 +6,16 @@ from .utils import get_lines_from_file
 
 AstyleArgs = namedtuple(
     'AstyleArgs',
-    ['rules', 'options', 'files', 'exclude_list', 'fix_formatting', 'quiet'],
+    [
+        'rules',
+        'options',
+        'files',
+        'exclude_list',
+        'fix_formatting',
+        'quiet',
+        'version',
+        'astyle_version',
+    ],
 )
 
 
@@ -25,6 +34,8 @@ def parse_args(args) -> AstyleArgs:
     quiet = False
     rules = None
     options_to_remove = []
+    version = False
+    astyle_version = None
 
     for o in options:
         o_trimmed = o[2:] if o.startswith('--') else o
@@ -64,6 +75,15 @@ def parse_args(args) -> AstyleArgs:
             ensure_value()
             rules = value
 
+        elif opt == 'version':
+            options_to_remove.append(o)
+            version = True
+
+        elif opt == 'astyle-version':
+            options_to_remove.append(o)
+            ensure_value()
+            astyle_version = value
+
     for o in options_to_remove:
         options.remove(o)
 
@@ -81,4 +101,6 @@ def parse_args(args) -> AstyleArgs:
         exclude_list=exclude_list,
         fix_formatting=fix_formatting,
         quiet=quiet,
+        version=version,
+        astyle_version=astyle_version,
     )
