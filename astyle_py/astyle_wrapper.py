@@ -1,7 +1,6 @@
 # SPDX-FileCopyrightText: 2022 Ivan Grokhotkov <ivan@igrr.me>
 # SPDX-License-Identifier: MIT
 import os
-import sys
 import typing
 
 from wasmtime import (
@@ -82,6 +81,10 @@ ASTYLE_COMPAT_VERSION = '3.1'
 ASTYLE_SUPPORTED_VERSIONS = os.listdir(os.path.join(os.path.dirname(__file__), 'lib'))
 
 
+class AstyleError(RuntimeError):
+    pass
+
+
 class Astyle:
     def __init__(self, version: str = ASTYLE_COMPAT_VERSION):
         if version not in ASTYLE_SUPPORTED_VERSIONS:
@@ -107,8 +110,11 @@ class Astyle:
 
         self._opts_ptr = WasmString.from_str(self.context, '')
 
+        self._delayed_err = None  # type: typing.Optional[str]
+
     def version(self) -> str:
         res_addr = self.context.call_func('AStyleGetVersion')
+        self._handle_delayed_err()
         return str(WasmString.from_addr(self.context, res_addr))
 
     def set_options(self, options: str) -> None:
@@ -119,9 +125,13 @@ class Astyle:
         res_addr = self.context.call_func(
             'AStyleWrapper', src_ptr.addr, self._opts_ptr.addr
         )
+        self._handle_delayed_err()
         return str(WasmString.from_addr(self.context, res_addr))
 
     def _err_handler(self, errno: int, errptr: int):
         errstr = WasmString.from_addr(self.context, errptr)
-        print('error: {} ({})'.format(errstr, errno), file=sys.stderr)
-        raise SystemExit(1)
+        self._delayed_err = 'error: {} ({})'.format(errstr, errno)
+
+    def _handle_delayed_err(self):
+        if self._delayed_err:
+            raise AstyleError(self._delayed_err)

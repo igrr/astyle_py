@@ -4,7 +4,7 @@ import sys
 
 from . import __version__
 from .args import parse_args
-from .astyle_wrapper import ASTYLE_COMPAT_VERSION, Astyle
+from .astyle_wrapper import ASTYLE_COMPAT_VERSION, Astyle, AstyleError
 from .files_iter import iterate_files
 
 
@@ -37,7 +37,11 @@ def main():
         astyle.set_options(' '.join(file_item.astyle_options))
         with open(fname) as f:
             original = f.read()
-        formatted = astyle.format(original)
+        try:
+            formatted = astyle.format(original)
+        except AstyleError as e:
+            print('Error formatting {}: {}'.format(fname, e), file=sys.stderr)
+            raise SystemExit(1)
         if formatted != original:
             if args.fix_formatting:
                 diag('Formatting {}'.format(fname))
