@@ -91,8 +91,6 @@ Here is an example of a rules file:
 ```yml
 
 DEFAULT:
-    # Version of Astyle to use
-    version: "3.4.7"
     # These formatting options will be used by default
     options: "--style=otbs --indent=spaces=4 --convert-tabs"
 
@@ -115,7 +113,6 @@ code_to_ignore_for_now:
 
 This python wrapper bundles multiple copies of Astyle, you can choose which one to use:
 - In the CLI: via `--astyle-version=VERSION` argument
-- If you are using a rules file: using `version` key
 - When using astyle_py as a library: by passing the version to `Astyle()` constructor
 
 The following versions are supported:
