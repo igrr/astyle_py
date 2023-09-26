@@ -30,6 +30,11 @@ def main():
         if not args.quiet:
             print(*args_, file=sys.stderr)
 
+    if len(args.files) == 0:
+        diag('No files specified')
+        raise SystemExit(0)
+
+    files_checked = 0
     files_with_errors = 0
     files_formatted = 0
     for file_item in iterate_files(args):
@@ -51,6 +56,16 @@ def main():
             else:
                 diag('Formatting error in {}'.format(fname))
                 files_with_errors += 1
+
+    if files_checked == 0:
+        diag(
+            'No files checked, excluded by {}'.format(
+                '--exclude/--exclude-list option'
+                if args.exclude_list
+                else 'the rules file ({})'.format(args.rules)
+            )
+        )
+        raise SystemExit(0)
 
     if args.fix_formatting:
         if files_formatted:
