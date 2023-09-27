@@ -7,8 +7,8 @@ from astyle_py import Astyle
 
 
 def main():
-    # Create the formatter
-    formatter = Astyle()
+    # Create the formatter, optionally specifying the version of Astyle
+    formatter = Astyle(version='3.4.7')
 
     # Get the version of Astyle
     version: str = formatter.version()
