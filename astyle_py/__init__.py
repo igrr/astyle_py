@@ -3,4 +3,4 @@
 from .astyle_wrapper import Astyle, AstyleError
 
 __all__ = ['Astyle', 'AstyleError']
-__version__ = '1.0.3'
+__version__ = '1.0.4'
