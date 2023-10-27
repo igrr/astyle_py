@@ -19,7 +19,7 @@ The main reason to use this Python wrapper, rather than native `astyle` binaries
    ```yaml
    repos:
    -   repo: https://github.com/igrr/astyle_py.git
-       rev: v1.0.4
+       rev: v1.0.5
        hooks:
        -   id: astyle_py
            args: [--astyle-version=3.4.7 --style=linux]
