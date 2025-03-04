@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: 2022 Ivan Grokhotkov <ivan@igrr.me>
 # SPDX-License-Identifier: MIT
 import os
+import platform
 import typing
 
 from wasmtime import (
@@ -16,11 +17,24 @@ from wasmtime import (
     WasiConfig,
 )
 
+# Workaround for https://github.com/bytecodealliance/wasmtime/issues/10099
+MACOS_MACH_PORTS_WORKAROUND = False
+
+if platform.system() == 'Darwin':
+    try:
+        from wasmtime._bindings import wasmtime_config_macos_use_mach_ports_set
+
+        MACOS_MACH_PORTS_WORKAROUND = True
+    except ImportError:
+        pass
+
 
 class WasmContext:
     def __init__(self):
         wasm_cfg = Config()
         wasm_cfg.cache = True
+        if MACOS_MACH_PORTS_WORKAROUND:
+            wasmtime_config_macos_use_mach_ports_set(wasm_cfg.ptr(), False)
         self.linker = Linker(Engine(wasm_cfg))
         self.linker.define_wasi()
         self.store = Store(self.linker.engine)
