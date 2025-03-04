@@ -1,3 +1,124 @@
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools", "setuptools-scm", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "astyle_py"
+description = "Astyle, wrapped in a python package."
+readme = "README.md"
+requires-python = ">=3.9"
+license = {file = "LICENSE"}
+authors = [
+    {name = "Ivan Grokhotkov", email = "ivan@espressif.com"}
+]
+urls = { "Homepage" = "https://github.com/igrr/astyle_py" }
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3 :: Only"
+]
+dynamic = ["version"]
+
+dependencies = [
+    "wasmtime~=30.0.0",
+    "PyYAML~=6.0.1"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "types-PyYAML",
+    "pre-commit",
+    "coverage",
+    "commitizen"
+]
+
+[project.scripts]
+astyle_py = "astyle_py.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["astyle_py"]
+
+[tool.setuptools.package-data]
+"astyle_py" = ["lib/*/libastyle.wasm"]
+
+[tool.setuptools_scm]
+    write_to = "astyle_py/version.py"
+
+[tool.flake8]
+max-line-length = 120
+
+[tool.pytest.ini_options]
+addopts = "-s --tb short"
+
+[tool.commitizen]
+    annotated_tag            = true
+    bump_message             = "change: release v$new_version"
+    name                     = "cz_customize"
+    tag_format               = "v$version"
+    update_changelog_on_bump = true
+    version_provider         = "scm"
+    version_files            = ["README.md"]
+
+    [tool.commitizen.customize]
+        bump_map = { "change" = "MINOR", "feat" = "MINOR", "fix" = "PATCH", "refactor" = "PATCH", "remove" = "PATCH", "revert" = "PATCH" }
+        bump_pattern = "^(change|feat|fix|refactor|remove|revert)"
+        change_type_order = [
+            "change",
+            "ci",
+            "test",
+            "docs",
+            "feat",
+            "fix",
+            "refactor",
+            "remove",
+            "revert",
+        ]
+        example = "change: this is a custom change type"
+        message_template = "{% if scope %}{{change_type}}({{scope}}): {{message}}{% else %}{{change_type}}: {{message}}{% endif %}{% if body %}\n\n{{body}}{% endif %}{% if is_breaking_change %}\n\nBREAKING CHANGE{% endif %}{% if footer %}\n\n{{footer}}{% endif %}"
+        schema = "<type>(<scope>): <summary>"
+        schema_pattern = "^([a-z]+)(\\([\\w\\-\\.]+\\))?:\\s.*"
+
+        [[tool.commitizen.customize.questions]]
+            choices = [
+                { value = "change", name = "change: A change made to the codebase." },
+                { value = "ci", name = "ci: Changes to our CI configuration files and scripts." },
+                { value = "test", name = "test: Adding missing tests, correcting or improving existing tests." },
+                { value = "docs", name = "docs: Documentation only changes." },
+                { value = "feat", name = "feat: A new feature." },
+                { value = "fix", name = "fix: A bug fix." },
+                { value = "refactor", name = "refactor: A code change that neither fixes a bug nor adds a feature." },
+                { value = "remove", name = "remove: Removing code or files." },
+                { value = "revert", name = "revert: Revert to a commit." },
+            ]
+            message = "Select the TYPE of change you are committing"
+            name = "change_type"
+            type = "list"
+
+        [[tool.commitizen.customize.questions]]
+            message = "What is the SCOPE of this change (press enter to skip)?"
+            name    = "scope"
+            type    = "input"
+
+        [[tool.commitizen.customize.questions]]
+            message = "Describe the changes made (SUMMARY of commit message):"
+            name    = "message"
+            type    = "input"
+
+        [[tool.commitizen.customize.questions]]
+            message = "Provide additional contextual information - commit message BODY: (press [enter] to skip)"
+            name    = "body"
+            type    = "input"
+
+        [[tool.commitizen.customize.questions]]
+            default = false
+            message = "Is this a BREAKING CHANGE? Correlates with MAJOR in SemVer"
+            name    = "is_breaking_change"
+            type    = "confirm"
+
+        [[tool.commitizen.customize.questions]]
+            message = "Footer. Information about Breaking Changes and reference issues that this commit closes: (press [enter] to skip)"
+            name    = "footer"
+            type    = "input"
